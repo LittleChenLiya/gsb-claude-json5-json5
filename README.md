@@ -183,6 +183,37 @@ properties if a replacer array is specified.
 #### Return value
 A JSON5 string representing the value.
 
+### JSON5.migrate()
+Migrates a JSON5 document to strict JSON text. Comments and trailing commas
+are removed, and numbers are rewritten from their original source tokens —
+never through a JavaScript `Number` — so hexadecimal integers convert to
+exact decimal values without silent precision loss. The output is only
+returned when the whole document converts cleanly.
+
+#### Syntax
+    JSON5.migrate(text[, options])
+
+#### Parameters
+- `text`: The string to migrate from JSON5 to strict JSON.
+- `options`: An object with the following properties:
+  - `unsafeInteger`: Policy for integers beyond `Number.MAX_SAFE_INTEGER`:
+    `'reject'` (default) throws; `'string'` emits the exact decimal value as
+    a JSON string.
+  - `nonFinite`: Policy for `NaN` and `Infinity`: `'reject'` (default)
+    throws; `'null'` emits `null`.
+  - `space`: Same as the `space` parameter of `JSON5.stringify()`.
+
+#### Return value
+A strict JSON string. Negative zero is preserved (`-0` migrates to `-0`).
+See [docs/migration.md](docs/migration.md) for the full migration strategy,
+including the negative zero convention and error reporting details.
+
+#### Example
+```js
+JSON5.migrate('{n:0x20000000000001,small:0x10,}', {unsafeInteger: 'string'})
+// '{"n":"9007199254740993","small":16}'
+```
+
 ### Node.js `require()` JSON5 files
 When using Node.js, you can `require()` JSON5 files by adding the following
 statement.
