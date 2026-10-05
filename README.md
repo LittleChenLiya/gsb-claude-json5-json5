@@ -150,6 +150,47 @@ transformation on the resulting object before it is returned.
 #### Return value
 The object corresponding to the given JSON5 text.
 
+### JSON5.parseWithTokens()
+Parses a JSON5 string and reports each token produced by the actual lexical
+process. The callback receives immutable token objects that contain only the
+token category and its position; the original token value is never included.
+
+The callback may safely call `JSON5.parse` (or `JSON5.parseWithTokens`) on any
+text. Each parsing session keeps its own state, so a nested session never
+overwrites the source, cursor, or stack of the outer session. If the callback
+throws, parsing is terminated and no resulting value is delivered.
+
+#### Syntax
+    JSON5.parseWithTokens(text, onToken)
+
+#### Parameters
+- `text`: The string to parse as JSON5.
+- `onToken`: A function called with each immutable token as it is lexed. A token
+  has the shape `{type, line, column}` where `type` is one of `punctuator`,
+  `null`, `boolean`, `numeric`, `string`, `identifier`, or `eof`.
+
+#### Example
+```js
+const tokens = []
+const result = JSON5.parseWithTokens('{a:1,b:2}', token => {
+    tokens.push(token)
+
+    // The callback may parse another document. The outer result is still
+    // correct, and each session's positions start from its own text.
+    if (token.type === 'identifier' && token.column === 2) {
+        JSON5.parse('[10,20]')
+    }
+})
+
+console.log(result) // {a: 1, b: 2}
+console.log(tokens)
+// [
+//   {type: 'punctuator', line: 1, column: 1},
+//   {type: 'identifier', line: 1, column: 2},
+//   ...
+// ]
+```
+
 ### JSON5.stringify()
 Converts a JavaScript value to a JSON5 string, optionally replacing values if a
 replacer function is specified, or optionally including only the specified
