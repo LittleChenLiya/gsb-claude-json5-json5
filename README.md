@@ -183,6 +183,37 @@ properties if a replacer array is specified.
 #### Return value
 A JSON5 string representing the value.
 
+### JSON5.snapshot() and JSON5.snapshotStringify()
+Explicit snapshot serialization for objects whose getters must be controlled.
+A pure-data snapshot is produced first: only the getters whose real paths are
+declared in `allow` may execute (each at most once); any other getter is
+rejected with a `JSON5.SnapshotAccessError` *before* it is read, instead of
+being silently triggered by ordinary property access. `toJSON5`/`toJSON` and
+other methods are never invoked, and the replacer only sees the snapshot, so it
+cannot re-trigger a getter on the original object. On any failure no output is
+produced. The default `JSON5.stringify()` is unchanged.
+
+#### Syntax
+    JSON5.snapshot(value[, {allow[, replacer[, space[, quote]]]}])
+    JSON5.snapshotStringify(value[, {allow[, replacer[, space[, quote]]]}])
+
+#### Parameters
+- `value`: The value to snapshot / convert to a JSON5 string.
+- `allow`: A single path (array of keys/indices from the root) or an array of
+  paths whose getters are permitted to execute. Numbers name array indices, so
+  `[0]` and `['0']` are the same path. Each nested getter is authorized by its
+  own real path; allowing a parent path does not authorize getters below it.
+- `replacer`, `space`, `quote`: Same as the `JSON5.stringify` options; applied
+  when serializing the snapshot.
+
+#### Return value
+`snapshot` returns a plain-data object/array/primitive with no accessor
+properties; `snapshotStringify` returns the JSON5 string of that snapshot.
+
+See [SNAPSHOT.md](./SNAPSHOT.md) for the full access contract, and run the
+local acceptance tests with `node test/snapshot.js` (or
+`npm run test:snapshot`).
+
 ### Node.js `require()` JSON5 files
 When using Node.js, you can `require()` JSON5 files by adding the following
 statement.

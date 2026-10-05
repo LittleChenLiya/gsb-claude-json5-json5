@@ -27,6 +27,7 @@
     production: 'run-s test build',
     tap: 'tap -Rspec --100 test',
     test: 'run-s lint-report tap',
+    'test:snapshot': 'node test/snapshot.js',
     version: 'npm run build-package && git add package.json5',
   },
   repository: {
