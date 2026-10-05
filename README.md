@@ -183,6 +183,81 @@ properties if a replacer array is specified.
 #### Return value
 A JSON5 string representing the value.
 
+### JSON5.snapshot()
+Creates an explicit, plain-data snapshot of a JavaScript value. Only getters
+whose path is declared in `options.paths` are executed; all other getters are
+rejected (a `TypeError` is thrown) before they are read. Allowed getters run
+at most once. The returned value is a pure data structure (plain objects,
+arrays, and primitives) with no active getters, so it can be safely passed to
+`JSON5.stringify` without triggering the original object's getters again.
+
+No object methods (including `toJSON`/`toJSON5`) are invoked, and function
+values are omitted from the snapshot.
+
+#### Syntax
+    JSON5.snapshot(value[, options])
+
+#### Parameters
+- `value`: The value to snapshot.
+- `options`: An object with the following property:
+  - `paths`: An array of paths whose getters are allowed to execute. Paths
+    may be strings (`'a.b[0]'`) or arrays (`['a', 'b', 0]`). Nested layers
+    are authorized by their real path from the root.
+
+#### Return value
+A plain-data snapshot of the value.
+
+#### Access contract
+- A getter is executed **only** when its path is declared in `options.paths`.
+- A getter whose path is not declared is **rejected before reading**; it is
+  never called.
+- Each allowed getter runs **at most once**, even if reached through multiple
+  paths.
+- On rejection, a `TypeError` is thrown and **no output** is produced.
+- The snapshot contains **no active getters**, so `JSON5.stringify` (including
+  its replacer) cannot re-trigger the original object's getters.
+- Object methods are **not auto-executed**.
+
+#### Example
+```js
+const JSON5 = require('json5')
+
+let bCount = 0
+const obj = {
+  a: 1,
+  get b () { bCount++; return 2 },
+  nested: {
+    get c () { return 3 },
+  },
+}
+
+// Only 'a' and 'nested.c' are declared; 'b' is rejected.
+try {
+  JSON5.snapshot(obj, {paths: ['a', 'nested.c']})
+} catch (e) {
+  // bCount === 0, no output
+}
+
+// Allow all getters.
+const snap = JSON5.snapshot(obj, {paths: ['a', 'b', 'nested.c']})
+// bCount === 1, c getter ran once
+
+// The snapshot is plain data. Stringifying it does not re-trigger getters.
+JSON5.stringify(snap) // '{a:1,b:2,nested:{c:3}}'
+JSON5.stringify(snap) // bCount still 1
+```
+
+### Node.js local commands
+Run the snapshot and tests locally with Node.js:
+
+```sh
+# Run the snapshot tests
+node test/snapshot.js
+
+# Run a one-off snapshot
+node -e "const JSON5=require('./lib'); const o={get a(){return 1}}; console.log(JSON5.stringify(JSON5.snapshot(o,{paths:['a']})))"
+```
+
 ### Node.js `require()` JSON5 files
 When using Node.js, you can `require()` JSON5 files by adding the following
 statement.
