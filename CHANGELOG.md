@@ -3,6 +3,14 @@
 [c-unreleased]: https://github.com/json5/json5/tree/main
 [d-unreleased]: https://github.com/json5/json5/compare/v2.2.3...HEAD
 
+- New: `JSON5.parseWithTokens(text, onToken)` parses a JSON5 string like
+  `JSON5.parse()` while reporting each token to an observation callback as it
+  is produced by the lexer (a single pass). Each callback receives an
+  immutable record with the token's category (`type`) and position (`line`,
+  `column`); the token's value is not exposed. Nested parses from within the
+  callback use independent state, and a throwing callback aborts the parse
+  without delivering a partial result.
+
 ### v2.2.3 [[code][c2.2.3], [diff][d2.2.3]]
 
 [c2.2.3]: https://github.com/json5/json5/tree/v2.2.3

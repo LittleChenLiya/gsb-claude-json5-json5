@@ -150,6 +150,79 @@ transformation on the resulting object before it is returned.
 #### Return value
 The object corresponding to the given JSON5 text.
 
+### JSON5.parseWithTokens()
+Parses a JSON5 string like `JSON5.parse()`, while reporting each token to an
+observation callback as it is produced by the lexer. Tokens are reported
+during the single lexing pass — the input is not scanned twice.
+
+#### Syntax
+    JSON5.parseWithTokens(text, onToken)
+
+#### Parameters
+- `text`: The string to parse as JSON5.
+- `onToken`: A function that is called with an immutable token record for
+  every token, including the final `eof` token. Each record is a frozen
+  object with the following properties (the token's value is intentionally
+  not exposed):
+  - `type`: The category of the token (`'punctuator'`, `'identifier'`,
+    `'string'`, `'numeric'`, `'boolean'`, `'null'`, or `'eof'`).
+  - `line`: The 1-based line number on which the token ends.
+  - `column`: The 0-based column number immediately after the token's last
+    character.
+
+  The callback may safely call `JSON5.parse()` or `JSON5.parseWithTokens()`
+  itself: nested parses run with independent state and do not disturb the
+  source, cursor, or stack of the outer parse. If the callback throws, the
+  parse is aborted, the exception propagates, and no (partial) result is
+  returned.
+
+#### Return value
+The object corresponding to the given JSON5 text (same as `JSON5.parse()`).
+
+#### Example: observing tokens
+```js
+const JSON5 = require('json5')
+
+const tokens = []
+const value = JSON5.parseWithTokens('{a: 1}', token => tokens.push(token))
+// value => {a: 1}
+// tokens => [
+//     {type: 'punctuator', line: 1, column: 1},
+//     {type: 'identifier', line: 1, column: 2},
+//     {type: 'punctuator', line: 1, column: 3},
+//     {type: 'numeric', line: 1, column: 5},
+//     {type: 'punctuator', line: 1, column: 6},
+//     {type: 'eof', line: 1, column: 7},
+// ]
+```
+
+#### Example: nested parses inside the callback
+```js
+const JSON5 = require('json5')
+
+const outerTokens = []
+const outer = JSON5.parseWithTokens('{x: {y: 2}}', token => {
+    outerTokens.push(token)
+
+    if (token.type === 'identifier') {
+        // Each parse keeps its own state; token positions are counted from
+        // the text passed to that parse, so the inner tokens below start at
+        // line 1, column 1 of '[1, 2]' while the outer parse continues
+        // unaffected.
+        const innerTokens = []
+        const inner = JSON5.parseWithTokens('[1, 2]', t => innerTokens.push(t))
+        // inner => [1, 2]
+    }
+})
+// outer => {x: {y: 2}}
+```
+
+#### Running the focused tests
+The targeted tests for this API use Node's built-in test runner and require
+no extra dependencies:
+
+    node --test test/parse-with-tokens.js
+
 ### JSON5.stringify()
 Converts a JavaScript value to a JSON5 string, optionally replacing values if a
 replacer function is specified, or optionally including only the specified
